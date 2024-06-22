@@ -55,11 +55,10 @@
     
   <ItemGroup>
     <Folder Include="Random\" />
-    <Folder Include="Patches\" />
   </ItemGroup>
 
   <Target Name="CopyDLL" AfterTargets="Build">
-    <Copy SourceFiles="$(TargetDir)$(ProjectName).dll" DestinationFolder="$(MTD_PATH)"/>
-    <Message Text="Copied $(ProjectName).dll to $(MTD_PATH)" Importance="High"/>
+    <Copy SourceFiles="$(TargetDir)$(ProjectName).dll" DestinationFolder="$(MTD_PATH)" />
+    <Message Text="Copied $(ProjectName).dll to $(MTD_PATH)" Importance="High" />
   </Target>
 </Project>
