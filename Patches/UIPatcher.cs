@@ -1,10 +1,11 @@
-﻿using flanne.Core;
+﻿using BepInEx.Configuration;
+using flanne.Core;
 using flanne.TitleScreen;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using UnityEngine.Video;
 
 namespace ArchipelagoMTD.Patches
 {
@@ -20,7 +21,6 @@ namespace ArchipelagoMTD.Patches
         [HarmonyPatch(typeof(GameController), nameof(GameController.Start))]
         private static void CreatePanelObj(object __instance)
         {
-            
             panelObj = new("ArchipelagoMTD Panel", typeof(RectTransform));
             panelObj.transform.SetParent(GameObject.Find("Canvas").transform);
             panelObj.layer = 5;
@@ -40,15 +40,14 @@ namespace ArchipelagoMTD.Patches
                 prevInstance = __instance;
             }
 
-            for (int i = 0; i < 5; i++)
-            {
-                CreateText($"{i}");
-            }
-            
-            if(__instance is TitleScreenController)
+            CreateText(__instance.GetType().ToString());
+
+            if (__instance is TitleScreenController)
             {
                 CreateSettingsButton();
             }
+
+
         }
 
         public static void CreateText(string text)
@@ -57,7 +56,7 @@ namespace ArchipelagoMTD.Patches
             gO.transform.SetParent(panelObj.transform);
             gO.layer = 5;
             gO.transform.localScale = new Vector3(1, 1, 1);
-            
+
             RectTransform rectTransform = gO.GetComponent<RectTransform>();
             rectTransform.anchorMin = new Vector2(0, 1);
             rectTransform.anchorMax = new Vector2(0, 1);
@@ -112,7 +111,7 @@ namespace ArchipelagoMTD.Patches
                 settingsPanel.SetActive(!settingsPanel.activeSelf);
             });
 
-            
+
         }
 
         public static GameObject CreateSettingsPanel()
@@ -122,7 +121,7 @@ namespace ArchipelagoMTD.Patches
             gameObject.transform.SetParent(panelObj.transform, false);
             gameObject.layer = 5;
             gameObject.transform.localScale = new Vector3(1, 1, 1);
-            
+
             RectTransform rectTransform = gameObject.GetComponent<RectTransform>();
             rectTransform.sizeDelta = new Vector2(400, 400);
             foreach (Sprite sprite in Resources.FindObjectsOfTypeAll<Sprite>())
@@ -134,7 +133,57 @@ namespace ArchipelagoMTD.Patches
                 }
             }
 
+            CreateConfigEntryField(Plugin.serverIp, gameObject.transform);
+            CreateConfigEntryField(Plugin.serverPort, gameObject.transform);
+            CreateConfigEntryField(Plugin.serverPassword, gameObject.transform);
+            CreateConfigEntryField(Plugin.slotName, gameObject.transform);
+
             return gameObject;
+        }
+
+        private static void CreateConfigEntryField<T>(ConfigEntry<T> configEntry, Transform parent)
+        {
+            GameObject entryContainer = new($"Container for {configEntry.Definition.Key}", typeof(RectTransform));
+            entryContainer.transform.SetParent(parent, false);
+            entryContainer.layer = 5;
+
+            RectTransform containerRect = entryContainer.GetComponent<RectTransform>();
+            containerRect.sizeDelta = new Vector2(200, 50);
+            containerRect.localPosition = new Vector3(80, 150 + (parent.childCount * -45), 10);
+
+            GameObject labelObject = new("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+            labelObject.transform.SetParent(entryContainer.transform, false);
+            TextMeshProUGUI label = labelObject.GetComponent<TextMeshProUGUI>();
+            label.text = $"{configEntry.Definition.Key}:";
+            label.fontSize = 20;
+            label.alignment = TextAlignmentOptions.Left;
+            label.rectTransform.anchoredPosition = new Vector2(-140, 0);
+
+            GameObject inputFieldObject = TMP_DefaultControls.CreateInputField(new TMP_DefaultControls.Resources());
+            Debug.Log("Input field created");
+            inputFieldObject.transform.SetParent(entryContainer.transform, false);
+            inputFieldObject.layer = 5;
+            TMP_InputField inputField = inputFieldObject.GetComponent<TMP_InputField>();
+            inputField.text = configEntry.Value.ToString();
+            inputField.onEndEdit.AddListener((value) => UpdateConfigEntry(configEntry, value));
+            inputField.OnPointerClick(new PointerEventData(EventSystem.current));
+
+            RectTransform inputFieldRect = inputFieldObject.GetComponent<RectTransform>();
+            inputFieldRect.anchoredPosition = new Vector2(0, 0);
+            inputFieldRect.sizeDelta = new Vector2(150, 40);
+
+        }
+
+        private static void UpdateConfigEntry<T>(ConfigEntry<T> configEntry, string value)
+        {
+            if (typeof(T) == typeof(int) && int.TryParse(value, out int intValue))
+            {
+                configEntry.Value = (T)(object)intValue;
+            }
+            else if (typeof(T) == typeof(string))
+            {
+                configEntry.Value = (T)(object)value;
+            }
         }
     }
 }
