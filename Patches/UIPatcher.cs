@@ -4,7 +4,6 @@ using flanne.TitleScreen;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ArchipelagoMTD.Patches
@@ -164,9 +163,9 @@ namespace ArchipelagoMTD.Patches
             inputFieldObject.transform.SetParent(entryContainer.transform, false);
             inputFieldObject.layer = 5;
             TMP_InputField inputField = inputFieldObject.GetComponent<TMP_InputField>();
+            inputField.interactable = true;
             inputField.text = configEntry.Value.ToString();
             inputField.onEndEdit.AddListener((value) => UpdateConfigEntry(configEntry, value));
-            inputField.OnPointerClick(new PointerEventData(EventSystem.current));
 
             RectTransform inputFieldRect = inputFieldObject.GetComponent<RectTransform>();
             inputFieldRect.anchoredPosition = new Vector2(0, 0);
