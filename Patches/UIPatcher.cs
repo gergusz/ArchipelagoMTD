@@ -1,4 +1,5 @@
-﻿using BepInEx.Configuration;
+using ArchipelagoMTD.ArchipelagoClient;
+using BepInEx.Configuration;
 using flanne.Core;
 using flanne.TitleScreen;
 using HarmonyLib;
@@ -11,9 +12,12 @@ namespace ArchipelagoMTD.Patches
     [HarmonyPatch]
     public class UIPatcher
     {
-        public static GameObject panelObj;
+        private static GameObject panelObj;
         private static int textline = 0;
         private static object prevInstance;
+        private static GameObject settingsButton;
+        private static GameObject settingsPanel;
+        private static TMP_FontAsset gameFont;
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(TitleScreenController), nameof(TitleScreenController.Start))]
@@ -39,13 +43,13 @@ namespace ArchipelagoMTD.Patches
                 prevInstance = __instance;
             }
 
-            CreateText(__instance.GetType().ToString());
-
             if (__instance is TitleScreenController)
             {
+                gameFont ??= GameObject.Find("PlayButton").GetComponentInChildren<TextMeshProUGUI>().font;
                 CreateSettingsButton();
             }
 
+            CreateText(__instance.GetType().ToString());
 
         }
 
@@ -64,6 +68,7 @@ namespace ArchipelagoMTD.Patches
 
             var tmpro = gO.GetComponent<TextMeshProUGUI>();
             tmpro.text = text;
+            tmpro.font = gameFont;
             tmpro.fontSize = 10;
             tmpro.raycastTarget = false;
         }
@@ -91,29 +96,31 @@ namespace ArchipelagoMTD.Patches
                 }
             }
 
-            var button = TMP_DefaultControls.CreateButton(resources);
-            button.transform.SetParent(gameObject.transform, false);
-            button.GetComponentInChildren<TextMeshProUGUI>().text = "Archipelago Settings";
-            button.GetComponentInChildren<TextMeshProUGUI>().color = Color.red;
+            settingsButton = TMP_DefaultControls.CreateButton(resources);
+            settingsButton.transform.SetParent(gameObject.transform, false);
+            settingsButton.GetComponentInChildren<TextMeshProUGUI>().text = "Archipelago Settings";
+            settingsButton.GetComponentInChildren<TextMeshProUGUI>().color = Color.red;
+            settingsButton.GetComponentInChildren<TextMeshProUGUI>().font = gameFont;
 
-            RectTransform buttonRectTransform = button.GetComponent<RectTransform>();
+            RectTransform buttonRectTransform = settingsButton.GetComponent<RectTransform>();
             buttonRectTransform.anchorMin = Vector2.zero;
             buttonRectTransform.anchorMax = Vector2.one;
             buttonRectTransform.pivot = new Vector2(0.5f, 0.5f);
             buttonRectTransform.offsetMin = Vector2.zero;
             buttonRectTransform.offsetMax = Vector2.zero;
 
-            var settingsPanel = CreateSettingsPanel();
+            settingsPanel = CreateSettingsPanel();
 
-            button.GetComponent<Button>().onClick.AddListener(() =>
+            settingsButton.GetComponent<Button>().onClick.AddListener(() =>
             {
-                settingsPanel.SetActive(!settingsPanel.activeSelf);
+                settingsPanel.SetActive(true);
+                settingsButton.SetActive(false);
             });
 
 
         }
 
-        public static GameObject CreateSettingsPanel()
+        private static GameObject CreateSettingsPanel()
         {
             GameObject gameObject = new("ArchipelagoMTD Settings Panel", typeof(RectTransform), typeof(Image));
             gameObject.SetActive(false);
@@ -137,6 +144,34 @@ namespace ArchipelagoMTD.Patches
             CreateConfigEntryField(Plugin.serverPassword, gameObject.transform);
             CreateConfigEntryField(Plugin.slotName, gameObject.transform);
 
+            var resources = new TMP_DefaultControls.Resources();
+            foreach (Sprite sprite in Resources.FindObjectsOfTypeAll<Sprite>())
+            {
+                if (sprite.name == "T_UIPanel" || sprite.name == "UIPanel")
+                {
+                    resources.standard = sprite;
+                    break;
+                }
+            }
+
+            GameObject connectButton = TMP_DefaultControls.CreateButton(resources);
+            connectButton.transform.SetParent(gameObject.transform, false);
+            connectButton.GetComponentInChildren<TextMeshProUGUI>().text = "Try Connecting";
+            connectButton.GetComponentInChildren<TextMeshProUGUI>().color = Color.red;
+            connectButton.GetComponentInChildren<TextMeshProUGUI>().font = gameFont;
+
+            RectTransform buttonRectTransform = connectButton.GetComponent<RectTransform>();
+            buttonRectTransform.localPosition = new Vector3(0, -200, 10);
+
+            connectButton.GetComponent<Button>().onClick.AddListener(() =>
+            {
+                if(ArchipelagoController.ConnectToServer(Plugin.serverIp.Value, Plugin.serverPort.Value, Plugin.serverPassword.Value, Plugin.slotName.Value))
+                {
+                    settingsPanel.SetActive(false);
+                    settingsButton.SetActive(true);
+                }
+            });
+
             return gameObject;
         }
 
@@ -154,12 +189,12 @@ namespace ArchipelagoMTD.Patches
             labelObject.transform.SetParent(entryContainer.transform, false);
             TextMeshProUGUI label = labelObject.GetComponent<TextMeshProUGUI>();
             label.text = $"{configEntry.Definition.Key}:";
+            label.font = gameFont;
             label.fontSize = 20;
             label.alignment = TextAlignmentOptions.Left;
             label.rectTransform.anchoredPosition = new Vector2(-140, 0);
 
             GameObject inputFieldObject = TMP_DefaultControls.CreateInputField(new TMP_DefaultControls.Resources());
-            Debug.Log("Input field created");
             inputFieldObject.transform.SetParent(entryContainer.transform, false);
             inputFieldObject.layer = 5;
             TMP_InputField inputField = inputFieldObject.GetComponent<TMP_InputField>();

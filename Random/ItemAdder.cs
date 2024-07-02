@@ -11,7 +11,6 @@ namespace ArchipelagoMTD.Random
 
         public void AddItem()
         {
-            Debug.Log("Good this far");
             Powerup pUp = GameObject.Find("PowerupGenerator").GetComponent<PowerupGenerator>().GetRandom(2)[1];
             GameObject.Find("PlayerController").GetComponent<PlayerController>().playerPerks.Equip(pUp);
         }

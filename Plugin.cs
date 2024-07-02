@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
+using BepInEx.Logging;
 using HarmonyLib;
 using MTDUI;
 
@@ -15,6 +16,7 @@ namespace ArchipelagoMTD
         public static ConfigEntry<int> serverPort;
         public static ConfigEntry<string> serverPassword;
         public static ConfigEntry<string> slotName;
+        public static ManualLogSource Log;
 
         private void Awake()
         {
@@ -24,16 +26,19 @@ namespace ArchipelagoMTD
             serverPassword = Config.Bind("Server", "ServerPassword", "", "The archipelago server password. (Leave empty if a password is not set)");
             slotName = Config.Bind("Server", "SlotName", "", "The archipelago slot name. This is usually your username");
             ModOptions.RegisterOptionInModList(activateMod);
+
+            Log = BepInEx.Logging.Logger.CreateLogSource(PluginInfo.PLUGIN_NAME);
+
             if (!activateMod.Value)
             {
-                Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} is disabled in config, stopped loading!");
+                Log.LogInfo($"{PluginInfo.PLUGIN_GUID} is disabled in config, stopped loading!");
                 return;
             }
 
             Harmony harmony = new(PluginInfo.PLUGIN_GUID);
             harmony.PatchAll();
 
-            Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
+            Log.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
 
 
