@@ -18,14 +18,12 @@ namespace ArchipelagoMTD.Patches
         [HarmonyPatch(typeof(PowerupGenerator), nameof(PowerupGenerator.InitPowerupPool))]
         private static void InitPowerupPool(PowerupGenerator __instance)
         {
-            Debug.Log("InitPool");
             Powerup powerup = PowerUpCreator("arch_test_name", "Testitem :O", "arch_test_description", "This will get replaced");
             __instance.AddToPool(new List<Powerup> { powerup }, 10);
         }
 
         private static Powerup PowerUpCreator(string nameID, string name, string descriptionID, string description)
         {
-            Debug.Log("PoweUpCreator");
             Powerup powerup = ScriptableObject.CreateInstance<Powerup>();
             powerup.name = nameID;
             if (!LocalizationSystem.localizedEN.ContainsKey(nameID))
