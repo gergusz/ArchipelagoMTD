@@ -1,5 +1,6 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
+using Archipelago.MultiClient.Net.MessageLog.Messages;
 using ArchipelagoMTD.Patches;
 using System;
 using System.Text;
@@ -22,6 +23,7 @@ namespace ArchipelagoMTD.ArchipelagoClient
                 UIPatcher.CreateText($"Trying to connect to {serverIP}:{serverPort} as {slotName}...");
                 Plugin.Log.LogInfo($"Trying to connect to {serverIP}:{serverPort} as {slotName}...");
                 session = ArchipelagoSessionFactory.CreateSession(serverIP, serverPort);
+                session.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
                 result = session.TryConnectAndLogin(gameID, slotName, ItemsHandlingFlags.AllItems, version, ["Tracker"], null, serverPassword, true);
             }
             catch (Exception e)
@@ -40,7 +42,7 @@ namespace ArchipelagoMTD.ArchipelagoClient
                 }
                 foreach (ConnectionRefusedError error in faliure.ErrorCodes)
                 {
-                    builder.Append($"\n\t{error}");
+                    builder.Append($"\n\t{error} ");
                 }
 
                 UIPatcher.CreateText(builder.ToString());
@@ -53,6 +55,19 @@ namespace ArchipelagoMTD.ArchipelagoClient
             Plugin.Log.LogInfo($"Successfully connected as {slotName} with slot number {loginSuccess.Slot}");
 
             return true;
+        }
+
+        private static void MessageLog_OnMessageReceived(LogMessage message)
+        {
+            StringBuilder builder = new();
+
+            foreach (var part in message.Parts)
+            {
+                builder.Append($"<color=#{part.Color.R:X2}{part.Color.G:X2}{part.Color.B:X2}>{part.Text}</color>");
+            }
+
+            Plugin.Log.LogInfo(builder.ToString());
+            UIPatcher.UIContext.Post(_ => UIPatcher.CreateText(builder.ToString()), null);
         }
     }
 }
