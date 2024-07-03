@@ -1,5 +1,6 @@
 using ArchipelagoMTD.ArchipelagoClient;
 using BepInEx.Configuration;
+using BepInEx.Logging;
 using flanne.Core;
 using flanne.TitleScreen;
 using HarmonyLib;
@@ -21,6 +22,7 @@ namespace ArchipelagoMTD.Patches
         private static TMP_FontAsset gameFont;
         private static Sprite UIPanelSprite;
         private static GameObject content;
+        public static GameObject connectButton;
         public static SynchronizationContext UIContext = SynchronizationContext.Current;
 
         [HarmonyPostfix]
@@ -128,8 +130,15 @@ namespace ArchipelagoMTD.Patches
         ///     </para>
         /// </remarks>
         /// <param name="text">The text to create</param>
-        public static void CreateText(string text)
+        /// <param name="log">Log the text to the console as well, defaults to true</param>
+        /// <param name="logLevel">Set the <see cref="LogLevel">log level</see>, defaults to <see cref="LogLevel.Message">Message</see></param>
+        public static void CreateText(string text, bool log = true, LogLevel logLevel = LogLevel.Message)
         {
+            if (log)
+            {
+                Plugin.Log.Log(logLevel, text);
+            }
+
             GameObject gO = new("ArchipelagoMTD Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             gO.transform.SetParent(content.transform);
             gO.layer = 5;
@@ -216,25 +225,54 @@ namespace ArchipelagoMTD.Patches
             CreateConfigEntryField(Plugin.serverPassword, gameObject.transform);
             CreateConfigEntryField(Plugin.slotName, gameObject.transform);
 
-            var resources = new TMP_DefaultControls.Resources();
-            resources.standard = UIPanelSprite;
+            var resources = new TMP_DefaultControls.Resources
+            {
+                standard = UIPanelSprite
+            };
 
-            GameObject connectButton = TMP_DefaultControls.CreateButton(resources);
+            connectButton = TMP_DefaultControls.CreateButton(resources);
             connectButton.transform.SetParent(gameObject.transform, false);
             connectButton.GetComponentInChildren<TextMeshProUGUI>().text = "Try Connecting";
-            connectButton.GetComponentInChildren<TextMeshProUGUI>().color = Color.red;
+            connectButton.GetComponentInChildren<TextMeshProUGUI>().color = Color.green;
             connectButton.GetComponentInChildren<TextMeshProUGUI>().font = gameFont;
 
             RectTransform buttonRectTransform = connectButton.GetComponent<RectTransform>();
-            buttonRectTransform.localPosition = new Vector3(0, -200, 10);
+            buttonRectTransform.localPosition = new Vector3(90, -200, 10);
 
-            connectButton.GetComponent<Button>().onClick.AddListener(() =>
+            connectButton.GetComponent<Button>().onClick.AddListener(async () =>
             {
-                if (ArchipelagoController.ConnectToServer(Plugin.serverIp.Value, Plugin.serverPort.Value, Plugin.serverPassword.Value, Plugin.slotName.Value))
+                if (ArchipelagoController.IsConnected)
                 {
-                    settingsPanel.SetActive(false);
-                    settingsButton.SetActive(true);
+                    await ArchipelagoController.DisconnectFromServer();
+                    connectButton.GetComponentInChildren<TextMeshProUGUI>().text = "Try Connecting";
+                    connectButton.GetComponentInChildren<TextMeshProUGUI>().color = Color.green;
+                    CreateText("<color=#FF0000>Disconnected from the Archipelago server!");
+
+                } else
+                {
+                    if (ArchipelagoController.ConnectToServer(Plugin.serverIp.Value, Plugin.serverPort.Value, Plugin.serverPassword.Value, Plugin.slotName.Value))
+                    {
+                        connectButton.GetComponentInChildren<TextMeshProUGUI>().text = "Disconnect";
+                        connectButton.GetComponentInChildren<TextMeshProUGUI>().color = Color.red;
+                        settingsPanel.SetActive(false);
+                        settingsButton.SetActive(true);
+                    }
                 }
+            });
+
+            GameObject cancelButton = TMP_DefaultControls.CreateButton(resources);
+            cancelButton.transform.SetParent(gameObject.transform, false);
+            cancelButton.GetComponentInChildren<TextMeshProUGUI>().text = "Cancel";
+            cancelButton.GetComponentInChildren<TextMeshProUGUI>().color = Color.white;
+            cancelButton.GetComponentInChildren<TextMeshProUGUI>().font = gameFont;
+
+            RectTransform cancelRectTransform = cancelButton.GetComponent<RectTransform>();
+            cancelRectTransform.localPosition = new Vector3(-90, -200, 10);
+
+            cancelButton.GetComponent<Button>().onClick.AddListener(() =>
+            {
+                settingsPanel.SetActive(false);
+                settingsButton.SetActive(true);
             });
 
             return gameObject;
