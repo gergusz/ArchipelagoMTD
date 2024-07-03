@@ -4,24 +4,23 @@ using Archipelago.MultiClient.Net.MessageLog.Messages;
 using ArchipelagoMTD.Patches;
 using System;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ArchipelagoMTD.ArchipelagoClient
 {
     internal class ArchipelagoController
     {
         public static ArchipelagoSession session;
+        public static bool IsConnected => session != null && result.Successful;
         private static readonly string gameID = "20 Minutes Till Dawn";
         private static readonly Version version = new(0, 5, 0);
+        private static LoginResult result;
 
         public static bool ConnectToServer(string serverIP, int serverPort, string serverPassword, string slotName)
         {
-
-            LoginResult result;
-
+            UIPatcher.CreateText($"<color=#D3D3D3>Trying to connect to </color>{Plugin.serverIp.Value}:{Plugin.serverPort.Value}<color=#D3D3D3> as </color>{Plugin.slotName.Value}<color=#D3D3D3>...");
             try
             {
-                UIPatcher.CreateText($"Trying to connect to {serverIP}:{serverPort} as {slotName}...");
-                Plugin.Log.LogInfo($"Trying to connect to {serverIP}:{serverPort} as {slotName}...");
                 session = ArchipelagoSessionFactory.CreateSession(serverIP, serverPort);
                 session.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
                 result = session.TryConnectAndLogin(gameID, slotName, ItemsHandlingFlags.AllItems, version, ["Tracker"], null, serverPassword, true);
@@ -35,7 +34,7 @@ namespace ArchipelagoMTD.ArchipelagoClient
             {
                 LoginFailure faliure = (LoginFailure)result;
                 StringBuilder builder = new();
-                builder.Append($"Failed to connect to {serverIP}:{serverPort} as {slotName}:");
+                builder.Append($"<color=#FF0000>Failed to connect to </color>{serverIP}:{serverPort}<color=#FF0000> as </color>{slotName}<color=#FF0000>:");
                 foreach (string error in faliure.Errors)
                 {
                     builder.Append($"\n\t{error}");
@@ -46,15 +45,20 @@ namespace ArchipelagoMTD.ArchipelagoClient
                 }
 
                 UIPatcher.CreateText(builder.ToString());
-                Plugin.Log.LogError(builder.ToString());
                 return false;
             }
 
             var loginSuccess = (LoginSuccessful)result;
-            UIPatcher.CreateText($"Successfully connected as {slotName} with slot number {loginSuccess.Slot}");
-            Plugin.Log.LogInfo($"Successfully connected as {slotName} with slot number {loginSuccess.Slot}");
+            UIPatcher.CreateText($"<color=#00FF00>Successfully connected as </color>{slotName}<color=#00FF00> with slot number </color>{loginSuccess.Slot}");
 
             return true;
+        }
+
+        public async static Task DisconnectFromServer()
+        {
+            await session.Socket.DisconnectAsync();
+            session = null;
+            result = null;
         }
 
         private static void MessageLog_OnMessageReceived(LogMessage message)
@@ -66,7 +70,6 @@ namespace ArchipelagoMTD.ArchipelagoClient
                 builder.Append($"<color=#{part.Color.R:X2}{part.Color.G:X2}{part.Color.B:X2}>{part.Text}</color>");
             }
 
-            Plugin.Log.LogInfo(builder.ToString());
             UIPatcher.UIContext.Post(_ => UIPatcher.CreateText(builder.ToString()), null);
         }
     }
