@@ -1,17 +1,21 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
+using Archipelago.MultiClient.Net.Packets;
 using ArchipelagoMTD.Patches;
 using System;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ArchipelagoMTD.ArchipelagoClient
 {
-    internal class ArchipelagoController
+    public static class ArchipelagoController
     {
         public static ArchipelagoSession session;
         public static bool IsConnected => session != null && result.Successful;
+        public static LocationController LocationController { get; private set; }
+
         private static readonly string gameID = "20 Minutes Till Dawn";
         private static readonly Version version = new(0, 5, 0);
         private static LoginResult result;
@@ -45,12 +49,12 @@ namespace ArchipelagoMTD.ArchipelagoClient
                 }
 
                 UIPatcher.CreateText(builder.ToString());
+                LocationController = new(session);
                 return false;
             }
 
             var loginSuccess = (LoginSuccessful)result;
             UIPatcher.CreateText($"<color=#00FF00>Successfully connected as </color>{slotName}<color=#00FF00> with slot number </color>{loginSuccess.Slot}");
-
             return true;
         }
 
@@ -59,6 +63,7 @@ namespace ArchipelagoMTD.ArchipelagoClient
             await session.Socket.DisconnectAsync();
             session = null;
             result = null;
+            LocationController = null;
         }
 
         private static void MessageLog_OnMessageReceived(LogMessage message)

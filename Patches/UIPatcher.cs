@@ -1,7 +1,6 @@
 using ArchipelagoMTD.ArchipelagoClient;
 using BepInEx.Configuration;
 using BepInEx.Logging;
-using flanne.Core;
 using flanne.TitleScreen;
 using HarmonyLib;
 using System.Linq;
@@ -16,7 +15,6 @@ namespace ArchipelagoMTD.Patches
     public static class UIPatcher
     {
         private static GameObject panelObj;
-        private static object prevInstance;
         private static GameObject settingsButton;
         private static GameObject settingsPanel;
         private static TMP_FontAsset gameFont;
@@ -27,11 +25,41 @@ namespace ArchipelagoMTD.Patches
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(TitleScreenController), nameof(TitleScreenController.Start))]
-        [HarmonyPatch(typeof(GameController), nameof(GameController.Start))]
         private static void CreatePanelObj(object __instance)
         {
+            var persistentCanvas = GameObject.Find("ArchipelagoMTD Canvas");
+            if (persistentCanvas == null)
+            {
+                persistentCanvas = new GameObject("ArchipelagoMTD Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+                Canvas canvasComponent = persistentCanvas.GetComponent<Canvas>();
+                canvasComponent.pixelPerfect = true;
+                canvasComponent.referencePixelsPerUnit = 32;
+                canvasComponent.sortingOrder = 1000;
+                canvasComponent.renderMode = RenderMode.ScreenSpaceOverlay;
+                Object.DontDestroyOnLoad(persistentCanvas);
+
+                Canvas existingCanvas = GameObject.Find("Canvas").GetComponent<Canvas>();
+                CanvasScaler existingCanvasScaler = existingCanvas.GetComponent<CanvasScaler>();
+                CanvasScaler canvasScaler = persistentCanvas.GetComponent<CanvasScaler>();
+                canvasScaler.uiScaleMode = existingCanvasScaler.uiScaleMode;
+                canvasScaler.referenceResolution = existingCanvasScaler.referenceResolution;
+                canvasScaler.screenMatchMode = existingCanvasScaler.screenMatchMode;
+                canvasScaler.matchWidthOrHeight = existingCanvasScaler.matchWidthOrHeight;
+                canvasScaler.referencePixelsPerUnit = existingCanvasScaler.referencePixelsPerUnit;
+
+                RectTransform existingCanvasRectTransform = existingCanvas.GetComponent<RectTransform>();
+                RectTransform canvasRectTransform = persistentCanvas.GetComponent<RectTransform>();
+                canvasRectTransform.localPosition = existingCanvasRectTransform.localPosition;
+                canvasRectTransform.localScale = existingCanvasRectTransform.localScale;
+                canvasRectTransform.anchorMin = existingCanvasRectTransform.anchorMin;
+                canvasRectTransform.anchorMax = existingCanvasRectTransform.anchorMax;
+                canvasRectTransform.sizeDelta = existingCanvasRectTransform.sizeDelta;
+                canvasRectTransform.pivot = existingCanvasRectTransform.pivot;
+            }
+            else return;
+
             panelObj = new("ArchipelagoMTD Panel", typeof(RectTransform));
-            panelObj.transform.SetParent(GameObject.Find("Canvas").transform);
+            panelObj.transform.SetParent(persistentCanvas.transform);
             panelObj.layer = 5;
             panelObj.transform.localScale = new Vector3(1, 1, 1);
 
@@ -41,24 +69,14 @@ namespace ArchipelagoMTD.Patches
             rectTransform.anchorMax = new Vector2(1, 1);
             rectTransform.pivot = new Vector2(0.5f, 0.5f);
 
-            prevInstance ??= __instance;
             gameFont ??= GameObject.Find("PlayButton").GetComponentInChildren<TextMeshProUGUI>().font;
             UIPanelSprite ??= Resources.FindObjectsOfTypeAll<Sprite>().First(sprite => sprite.name == "T_UIPanel");
 
-            if (__instance.GetType() != prevInstance.GetType())
-            {
-                prevInstance = __instance;
-            }
-
-            if (__instance is TitleScreenController)
-            {
-                CreateSettingsButton();
-            }
+            CreateSettingsButton();
 
             CreateScrollPanel();
 
             CreateText($"<color=#FF0000>ArchipelagoMTD</color> plugin loaded! <color=#D3D3D3>(ver {PluginInfo.PLUGIN_VERSION})");
-            CreateText($"Current instance: {__instance.GetType().Name}");
         }
 
         private static void CreateScrollPanel()
@@ -248,7 +266,8 @@ namespace ArchipelagoMTD.Patches
                     connectButton.GetComponentInChildren<TextMeshProUGUI>().color = Color.green;
                     CreateText("<color=#FF0000>Disconnected from the Archipelago server!");
 
-                } else
+                }
+                else
                 {
                     if (ArchipelagoController.ConnectToServer(Plugin.serverIp.Value, Plugin.serverPort.Value, Plugin.serverPassword.Value, Plugin.slotName.Value))
                     {

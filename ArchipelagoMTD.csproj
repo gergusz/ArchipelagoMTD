@@ -47,7 +47,6 @@
     
   <ItemGroup>
     <Folder Include="Random\" />
-    <Folder Include="ArchipelagoClient\"/>
   </ItemGroup>
 
   <Target Name="CopyDLL" AfterTargets="Build">
