@@ -1,4 +1,5 @@
 ﻿using ArchipelagoMTD.ArchipelagoClient;
+using ArchipelagoMTD.Powerups;
 using ArchipelagoMTD.Random;
 using flanne;
 using flanne.Core;
@@ -6,6 +7,7 @@ using flanne.PerkSystem;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using UnityEngine;
@@ -14,7 +16,7 @@ namespace ArchipelagoMTD.Patches
     [HarmonyPatch]
     public static class PoolPatcher
     {
-        static AssetBundle archi = AssetBundle.LoadFromStream(Assembly.GetExecutingAssembly().GetManifestResourceStream("ArchipelagoMTD.AssetBundles.archipelago.assetbundle"));
+        private static AssetBundle archi = AssetBundle.LoadFromStream(Assembly.GetExecutingAssembly().GetManifestResourceStream("ArchipelagoMTD.AssetBundles.archipelago.assetbundle"));
         private static Map map;
 
         private enum Map
@@ -54,33 +56,33 @@ namespace ArchipelagoMTD.Patches
                     break;
             }
 
-            int amountPerWorld;
+            ReadOnlyCollection<long> remainingIDs = ArchipelagoController.LocationController.GetRemainingLocationIDs();
 
-            try
+            foreach (var id in remainingIDs)
             {
-                amountPerWorld = ArchipelagoController.LocationController.AllLocationsCount / 3;
-
-            } catch (Exception e)
-            {
-                UIPatcher.CreateText(e.Message);
-                amountPerWorld = 20;
+                string locationName = ArchipelagoController.LocationController.GetLocationName(id) ?? "szomor";
+                if (locationName.Contains(SelectedMapString))
+                {
+                    __instance.AddToPool([PowerUpCreator($"archipelago_{locationName}", locationName, "archipelago_location_description", "An otherwordly power, maybe it is useful for another world?")], 1);
+                    UIPatcher.CreateText($"Added location power: {locationName}");
+                }
             }
 
-            UIPatcher.CreateText($"Amount per world is: {amountPerWorld}");
-
-            for (int i = 0; i < amountPerWorld; i++)
-            {
-                Powerup powerup = PowerUpCreator($"archipelago_{SelectedMapString}_location_{i + 1}", $"{SelectedMapString} {i + 1}", "archipelago_item_description", "This item is from a distant world,\nwho knows what could it do?");
-                UIPatcher.CreateText($"Created powerup: {powerup}");
-                __instance.AddToPool(new List<Powerup> { powerup }, 10);
-            }
-            //Powerup powerup = PowerUpCreator("arch_test_name", "Testitem :O", "arch_test_description", "This will get replaced");
-            //__instance.AddToPool(new List<Powerup> { powerup }, 10);
         }
 
-        private static Powerup PowerUpCreator(string nameID, string name, string descriptionID, string description)
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Powerup), nameof(Powerup.Apply))]
+        private static void SendLocation(Powerup __instance)
         {
-            Powerup powerup = ScriptableObject.CreateInstance<Powerup>();
+            if (__instance is ArchipelagoLocationPowerup locationPowerup)
+            {
+                ArchipelagoController.LocationController.SendLocation(locationPowerup);
+            }
+        }
+
+        private static ArchipelagoLocationPowerup PowerUpCreator(string nameID, string name, string descriptionID, string description)
+        {
+            ArchipelagoLocationPowerup powerup = ScriptableObject.CreateInstance<ArchipelagoLocationPowerup>();
             powerup.name = nameID;
             if (!LocalizationSystem.localizedEN.ContainsKey(nameID))
             {
@@ -114,6 +116,7 @@ namespace ArchipelagoMTD.Patches
 
             //powerup.statChanges = perkEffect.ToArray();
             powerup.statChanges = new List<StatChange>().ToArray();
+
             return powerup;
         }
 

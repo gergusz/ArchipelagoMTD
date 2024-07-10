@@ -13,10 +13,10 @@ namespace ArchipelagoMTD.ArchipelagoClient
     public static class ArchipelagoController
     {
         public static ArchipelagoSession session;
-        public static bool IsConnected => session != null && result.Successful;
+        public static bool IsConnected => session is not null && result.Successful && LocationController is not null;
         public static LocationController LocationController { get; private set; }
 
-        private static readonly string gameID = "20 Minutes Till Dawn";
+        public static readonly string gameID = "20 Minutes Till Dawn";
         private static readonly Version version = new(0, 5, 0);
         private static LoginResult result;
 
@@ -27,7 +27,7 @@ namespace ArchipelagoMTD.ArchipelagoClient
             {
                 session = ArchipelagoSessionFactory.CreateSession(serverIP, serverPort);
                 session.MessageLog.OnMessageReceived += MessageLog_OnMessageReceived;
-                result = session.TryConnectAndLogin(gameID, slotName, ItemsHandlingFlags.AllItems, version, ["Tracker"], null, serverPassword, true);
+                result = session.TryConnectAndLogin(gameID, slotName, ItemsHandlingFlags.AllItems, version, null, null, serverPassword, true);
             }
             catch (Exception e)
             {
@@ -49,11 +49,11 @@ namespace ArchipelagoMTD.ArchipelagoClient
                 }
 
                 UIPatcher.CreateText(builder.ToString());
-                LocationController = new(session);
                 return false;
             }
 
             var loginSuccess = (LoginSuccessful)result;
+            LocationController = new(session);
             UIPatcher.CreateText($"<color=#00FF00>Successfully connected as </color>{slotName}<color=#00FF00> with slot number </color>{loginSuccess.Slot}");
             return true;
         }
