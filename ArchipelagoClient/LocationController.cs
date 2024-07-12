@@ -16,7 +16,7 @@ namespace ArchipelagoMTD.ArchipelagoClient
 
         public void SendLocation(ArchipelagoLocationPowerup locationPowerup)
         {
-            UIPatcher.CreateText($"Sending location {locationPowerup.locationID}");
+            //UIPatcher.CreateText($"Sending location {locationPowerup.locationID}");
             session.Locations.CompleteLocationChecksAsync(locationPowerup.locationID);
         }
 

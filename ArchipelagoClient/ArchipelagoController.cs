@@ -1,5 +1,6 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
+using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
 using Archipelago.MultiClient.Net.Packets;
 using ArchipelagoMTD.Patches;
@@ -12,9 +13,10 @@ namespace ArchipelagoMTD.ArchipelagoClient
 {
     public static class ArchipelagoController
     {
-        public static ArchipelagoSession session;
-        public static bool IsConnected => session is not null && result.Successful && LocationController is not null;
+        private static ArchipelagoSession session;
+        public static bool IsConnected => session is not null && result.Successful && LocationController is not null && ItemController is not null;
         public static LocationController LocationController { get; private set; }
+        public static ItemController ItemController { get; private set; }
 
         public static readonly string gameID = "20 Minutes Till Dawn";
         private static readonly Version version = new(0, 5, 0);
@@ -54,6 +56,7 @@ namespace ArchipelagoMTD.ArchipelagoClient
 
             var loginSuccess = (LoginSuccessful)result;
             LocationController = new(session);
+            ItemController = new(session);
             UIPatcher.CreateText($"<color=#00FF00>Successfully connected as </color>{slotName}<color=#00FF00> with slot number </color>{loginSuccess.Slot}");
             return true;
         }
@@ -64,6 +67,7 @@ namespace ArchipelagoMTD.ArchipelagoClient
             session = null;
             result = null;
             LocationController = null;
+            ItemController = null;
         }
 
         private static void MessageLog_OnMessageReceived(LogMessage message)
@@ -75,7 +79,7 @@ namespace ArchipelagoMTD.ArchipelagoClient
                 builder.Append($"<color=#{part.Color.R:X2}{part.Color.G:X2}{part.Color.B:X2}>{part.Text}</color>");
             }
 
-            UIPatcher.UIContext.Post(_ => UIPatcher.CreateText(builder.ToString()), null);
+            UIPatcher.CreateText(builder.ToString());
         }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using ArchipelagoMTD.ArchipelagoClient;
 using ArchipelagoMTD.Powerups;
-using ArchipelagoMTD.Random;
 using flanne;
 using flanne.Core;
 using flanne.PerkSystem;
@@ -60,11 +59,10 @@ namespace ArchipelagoMTD.Patches
 
             foreach (var id in remainingIDs)
             {
-                string locationName = ArchipelagoController.LocationController.GetLocationName(id) ?? "szomor";
+                string locationName = ArchipelagoController.LocationController.GetLocationName(id);
                 if (locationName.Contains(SelectedMapString))
                 {
-                    __instance.AddToPool([PowerUpCreator($"archipelago_{locationName}", locationName, "archipelago_location_description", "An otherwordly power, maybe it is useful for another world?")], 1);
-                    UIPatcher.CreateText($"Added location power: {locationName}");
+                    __instance.AddToPool([PowerUpCreator($"archipelago_{locationName}", locationName, "archipelago_location_description", "An otherworldly power, maybe it is useful for another world?")], 1);
                 }
             }
 
@@ -128,11 +126,11 @@ namespace ArchipelagoMTD.Patches
         //    __result[0] = PowerUpCreator("arch_test_name", "Testitem :O", "arch_test_description", "This will get replaced");
         //}
 
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(GameController), nameof(GameController.Start))]
-        private static void AddItemAdder(GameController __instance)
-        {
-            GameObject.Find("GameController").AddComponent<ItemAdder>();
-        }
+        //[HarmonyPostfix]
+        //[HarmonyPatch(typeof(GameController), nameof(GameController.Start))]
+        //private static void AddItemAdder(GameController __instance)
+        //{
+        //    GameObject.Find("GameController").AddComponent<ItemAdder>();
+        //}
     }
 }

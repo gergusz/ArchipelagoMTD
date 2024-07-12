@@ -1,8 +1,10 @@
 using ArchipelagoMTD.ArchipelagoClient;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using flanne.Core;
 using flanne.TitleScreen;
 using HarmonyLib;
+using System;
 using System.Linq;
 using System.Threading;
 using TMPro;
@@ -20,6 +22,7 @@ namespace ArchipelagoMTD.Patches
         private static TMP_FontAsset gameFont;
         private static Sprite UIPanelSprite;
         private static GameObject content;
+        private static GameObject scrollPanel;
         public static GameObject connectButton;
         public static SynchronizationContext UIContext = SynchronizationContext.Current;
 
@@ -36,7 +39,7 @@ namespace ArchipelagoMTD.Patches
                 canvasComponent.referencePixelsPerUnit = 32;
                 canvasComponent.sortingOrder = 1000;
                 canvasComponent.renderMode = RenderMode.ScreenSpaceOverlay;
-                Object.DontDestroyOnLoad(persistentCanvas);
+                UnityEngine.Object.DontDestroyOnLoad(persistentCanvas);
 
                 Canvas existingCanvas = GameObject.Find("Canvas").GetComponent<Canvas>();
                 CanvasScaler existingCanvasScaler = existingCanvas.GetComponent<CanvasScaler>();
@@ -81,7 +84,7 @@ namespace ArchipelagoMTD.Patches
 
         private static void CreateScrollPanel()
         {
-            GameObject scrollPanel = new("ArchipelagoMTD Scroll Panel", typeof(RectTransform), typeof(ScrollRect));
+            scrollPanel = new("ArchipelagoMTD Scroll Panel", typeof(RectTransform), typeof(ScrollRect));
             scrollPanel.transform.SetParent(panelObj.transform, false);
             scrollPanel.layer = 5;
             scrollPanel.transform.localScale = new Vector3(1, 1, 1);
@@ -143,45 +146,53 @@ namespace ArchipelagoMTD.Patches
         ///    <para>
         ///    Uses <see cref="TextMeshProUGUI">TextMestProUGUI</see> under the hood, so it supports rich text tags.
         ///     </para>
-        ///    <para>
-        ///     If not in the main/ui thread, use <c>UIPatcher.UIContext.Post(_ => UIPatcher.CreateText(message.ToString()), null)</c>
-        ///     </para>
         /// </remarks>
         /// <param name="text">The text to create</param>
         /// <param name="log">Log the text to the console as well, defaults to true</param>
         /// <param name="logLevel">Set the <see cref="LogLevel">log level</see>, defaults to <see cref="LogLevel.Message">Message</see></param>
         public static void CreateText(string text, bool log = true, LogLevel logLevel = LogLevel.Message)
         {
-            if (log)
+            void action()
             {
-                Plugin.Log.Log(logLevel, text);
+                if (log)
+                {
+                    Plugin.Log.Log(logLevel, text);
+                }
+
+                GameObject gO = new("ArchipelagoMTD Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+                gO.transform.SetParent(content.transform);
+                gO.layer = 5;
+                gO.transform.localScale = new Vector3(1, 1, 1);
+
+                RectTransform rectTransform = gO.GetComponent<RectTransform>();
+                rectTransform.anchorMin = new Vector2(0, 1);
+                rectTransform.anchorMax = new Vector2(0, 1);
+                rectTransform.pivot = new Vector2(0, 1);
+                rectTransform.localPosition = new Vector2(0, 0);
+                rectTransform.sizeDelta = new Vector2(250, 10);
+
+                var tmpro = gO.GetComponent<TextMeshProUGUI>();
+                tmpro.text = text;
+                tmpro.font = gameFont;
+                tmpro.fontSize = 10;
+                tmpro.raycastTarget = false;
+                tmpro.enableWordWrapping = true;
+
+                rectTransform.sizeDelta = new Vector2(250, tmpro.preferredHeight);
+
+                LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)content.transform);
+                var scrollPanel = content.transform.parent.parent.GetComponent<ScrollRect>();
+                scrollPanel.normalizedPosition = new Vector2(0, 0);
             }
 
-            GameObject gO = new("ArchipelagoMTD Text", typeof(RectTransform), typeof(TextMeshProUGUI));
-            gO.transform.SetParent(content.transform);
-            gO.layer = 5;
-            gO.transform.localScale = new Vector3(1, 1, 1);
-
-            RectTransform rectTransform = gO.GetComponent<RectTransform>();
-            rectTransform.anchorMin = new Vector2(0, 1);
-            rectTransform.anchorMax = new Vector2(0, 1);
-            rectTransform.pivot = new Vector2(0, 1);
-            rectTransform.localPosition = new Vector2(0, 0);
-            rectTransform.sizeDelta = new Vector2(250, 10);
-
-            var tmpro = gO.GetComponent<TextMeshProUGUI>();
-            tmpro.text = text;
-            tmpro.font = gameFont;
-            tmpro.fontSize = 10;
-            tmpro.raycastTarget = false;
-            tmpro.enableWordWrapping = true;
-
-            rectTransform.sizeDelta = new Vector2(250, tmpro.preferredHeight);
-
-            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)content.transform);
-            var scrollPanel = content.transform.parent.parent.GetComponent<ScrollRect>();
-            scrollPanel.normalizedPosition = new Vector2(0, 0);
-
+            if (SynchronizationContext.Current == UIContext)
+            {
+                action();
+            }
+            else
+            {
+                UIContext.Post(_ => action(), null);
+            }
         }
 
         private static void CreateSettingsButton()
@@ -340,6 +351,34 @@ namespace ArchipelagoMTD.Patches
             {
                 configEntry.Value = (T)(object)value;
             }
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(TitleScreenController), nameof(TitleScreenController.Start))]
+        private static void TitleScreenUI()
+        {
+            settingsButton.SetActive(true);
+
+            RectTransform rectTransform = scrollPanel.GetComponent<RectTransform>();
+            rectTransform.anchorMin = new Vector2(0, 1);
+            rectTransform.anchorMax = new Vector2(0, 1);
+            rectTransform.pivot = new Vector2(0, 1);
+            rectTransform.localPosition = new Vector2(-397, 223);
+            rectTransform.sizeDelta = new Vector2(250, 72);
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(GameController), nameof(GameController.Start))]
+        private static void InGameUI()
+        {
+            settingsButton.SetActive(false);
+
+            RectTransform rectTransform = scrollPanel.GetComponent<RectTransform>();
+            rectTransform.anchorMin = new Vector2(0, 1);
+            rectTransform.anchorMax = new Vector2(0, 1);
+            rectTransform.pivot = new Vector2(0, 1);
+            rectTransform.localPosition = new Vector2(147, -150);
+            rectTransform.sizeDelta = new Vector2(250, 72);
         }
     }
 }
