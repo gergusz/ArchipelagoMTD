@@ -1,11 +1,8 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
-using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
-using Archipelago.MultiClient.Net.Packets;
 using ArchipelagoMTD.Patches;
 using System;
-using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 

@@ -1,10 +1,6 @@
 ﻿using Archipelago.MultiClient.Net;
-using ArchipelagoMTD.Patches;
 using ArchipelagoMTD.Powerups;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
 
 namespace ArchipelagoMTD.ArchipelagoClient
 {

@@ -1,9 +1,5 @@
 ﻿using ArchipelagoMTD.ArchipelagoClient;
 using flanne;
-using HarmonyLib;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ArchipelagoMTD.Powerups
 {

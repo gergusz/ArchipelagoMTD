@@ -1,16 +1,7 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
-using ArchipelagoMTD.Patches;
-using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using UnityEngine;
-using System.Linq;
-using System.Collections.Specialized;
 
 namespace ArchipelagoMTD.ArchipelagoClient
 {

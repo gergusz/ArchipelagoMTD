@@ -1,10 +1,7 @@
 ﻿using ArchipelagoMTD.ArchipelagoClient;
 using flanne;
-using flanne.Core;
 using HarmonyLib;
-using System;
 using System.Linq;
-using UnityEngine;
 
 namespace ArchipelagoMTD.Patches
 {

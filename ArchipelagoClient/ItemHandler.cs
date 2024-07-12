@@ -1,8 +1,5 @@
 ﻿using ArchipelagoMTD.Patches;
 using flanne;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 namespace ArchipelagoMTD.ArchipelagoClient

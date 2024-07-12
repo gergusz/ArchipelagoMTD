@@ -1,14 +1,11 @@
 ﻿using ArchipelagoMTD.ArchipelagoClient;
 using ArchipelagoMTD.Powerups;
 using flanne;
-using flanne.Core;
 using flanne.PerkSystem;
 using HarmonyLib;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 namespace ArchipelagoMTD.Patches
 {

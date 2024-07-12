@@ -4,7 +4,6 @@ using BepInEx.Logging;
 using flanne.Core;
 using flanne.TitleScreen;
 using HarmonyLib;
-using System;
 using System.Linq;
 using System.Threading;
 using TMPro;
