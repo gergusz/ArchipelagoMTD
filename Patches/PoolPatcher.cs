@@ -1,10 +1,10 @@
-﻿using ArchipelagoMTD.Random;
+﻿using ArchipelagoMTD.ArchipelagoClient;
+using ArchipelagoMTD.Powerups;
 using flanne;
-using flanne.Core;
 using flanne.PerkSystem;
 using HarmonyLib;
-using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Reflection;
 using UnityEngine;
 namespace ArchipelagoMTD.Patches
@@ -12,36 +12,91 @@ namespace ArchipelagoMTD.Patches
     [HarmonyPatch]
     public static class PoolPatcher
     {
-        static AssetBundle archi = AssetBundle.LoadFromStream(Assembly.GetExecutingAssembly().GetManifestResourceStream("ArchipelagoMTD.AssetBundles.archipelago.assetbundle"));
+        private static AssetBundle archi = AssetBundle.LoadFromStream(Assembly.GetExecutingAssembly().GetManifestResourceStream("ArchipelagoMTD.AssetBundles.archipelago.assetbundle"));
+        private static Map map;
+
+        private enum Map
+        {
+            Forest,
+            Temple,
+            PumpkinPatch
+        }
+
+        private static string SelectedMapString => map switch
+        {
+            Map.Forest => "Forest",
+            Map.Temple => "Temple",
+            Map.PumpkinPatch => "Pumpkin Patch",
+            _ => "Unknown"
+        };
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PowerupGenerator), nameof(PowerupGenerator.InitPowerupPool))]
         private static void InitPowerupPool(PowerupGenerator __instance)
         {
-            Powerup powerup = PowerUpCreator("arch_test_name", "Testitem :O", "arch_test_description", "This will get replaced");
-            __instance.AddToPool(new List<Powerup> { powerup }, 10);
+            if (!ArchipelagoController.IsConnected)
+            {
+                UIPatcher.CreateText($"Tried to patch but im not connected :((");
+                return;
+            }
+            switch (SelectedMap.MapData.name)
+            {
+               case "20M_Forest":
+                    map = Map.Forest;
+                    break;
+                case "20M_Temple":
+                    map = Map.Temple;
+                    break;
+                case "20M_PumpkinPatch":
+                    map = Map.PumpkinPatch;
+                    break;
+            }
+
+            ReadOnlyCollection<long> remainingIDs = ArchipelagoController.LocationController.GetRemainingLocationIDs();
+
+            foreach (var id in remainingIDs)
+            {
+                string locationName = ArchipelagoController.LocationController.GetLocationName(id);
+                if (locationName.Contains(SelectedMapString))
+                {
+                    __instance.AddToPool([PowerUpCreator($"archipelago_{locationName}", locationName, "archipelago_location_description", "An otherworldly power, maybe it is useful for another world?")], 1);
+                }
+            }
+
         }
 
-        private static Powerup PowerUpCreator(string nameID, string name, string descriptionID, string description)
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Powerup), nameof(Powerup.Apply))]
+        private static void SendLocation(Powerup __instance)
         {
-            Powerup powerup = ScriptableObject.CreateInstance<Powerup>();
+            if (__instance is ArchipelagoLocationPowerup locationPowerup)
+            {
+                ArchipelagoController.LocationController.SendLocation(locationPowerup);
+            }
+        }
+
+        private static ArchipelagoLocationPowerup PowerUpCreator(string nameID, string name, string descriptionID, string description)
+        {
+            ArchipelagoLocationPowerup powerup = ScriptableObject.CreateInstance<ArchipelagoLocationPowerup>();
             powerup.name = nameID;
             if (!LocalizationSystem.localizedEN.ContainsKey(nameID))
             {
                 LocalizationSystem.localizedEN.Add(nameID, name);
-
+            }
+            if (!LocalizationSystem.localizedEN.ContainsKey(descriptionID))
+            {
                 LocalizationSystem.localizedEN.Add(descriptionID, description);
             }
-            List<StatChange> perkEffect = new List<StatChange>([
-                    new StatChange(){
-                        type = StatType.MaxHP,
+            //List<StatChange> perkEffect = new List<StatChange>([
+            //        new StatChange(){
+            //            type = StatType.MaxHP,
 
-                        flatValue = 15,
-                        isFlatMod=true
+            //            flatValue = 15,
+            //            isFlatMod=true
 
-                    }
-                ]
-            );
+            //        }
+            //    ]
+            //);
 
 
             Sprite sprite = archi.LoadAsset<Sprite>("icon");
@@ -54,23 +109,25 @@ namespace ArchipelagoMTD.Patches
             powerup.nameStrID = nameID;
             powerup.prereqs = new List<Powerup>();
 
-            powerup.statChanges = perkEffect.ToArray();
+            //powerup.statChanges = perkEffect.ToArray();
+            powerup.statChanges = new List<StatChange>().ToArray();
+
             return powerup;
         }
 
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(PowerupGenerator), nameof(PowerupGenerator.GetRandom))]
-        [HarmonyPatch(MethodType.Normal, new Type[] { typeof(int), typeof(List<PowerupPoolItem>) })]
-        private static void NotSoRandom(int num, List<PowerupPoolItem> pool, List<Powerup> __result)
-        {
-            __result[0] = PowerUpCreator("arch_test_name", "Testitem :O", "arch_test_description", "This will get replaced");
-        }
+        //[HarmonyPostfix]
+        //[HarmonyPatch(typeof(PowerupGenerator), nameof(PowerupGenerator.GetRandom))]
+        //[HarmonyPatch(MethodType.Normal, new Type[] { typeof(int), typeof(List<PowerupPoolItem>) })]
+        //private static void NotSoRandom(int num, List<PowerupPoolItem> pool, List<Powerup> __result)
+        //{
+        //    __result[0] = PowerUpCreator("arch_test_name", "Testitem :O", "arch_test_description", "This will get replaced");
+        //}
 
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(GameController), nameof(GameController.Start))]
-        private static void AddItemAdder(GameController __instance)
-        {
-            GameObject.Find("GameController").AddComponent<ItemAdder>();
-        }
+        //[HarmonyPostfix]
+        //[HarmonyPatch(typeof(GameController), nameof(GameController.Start))]
+        //private static void AddItemAdder(GameController __instance)
+        //{
+        //    GameObject.Find("GameController").AddComponent<ItemAdder>();
+        //}
     }
 }
