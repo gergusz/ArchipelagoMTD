@@ -48,6 +48,12 @@ namespace ArchipelagoMTD.ArchipelagoClient
                 case "Powerup":
                     ItemHandler.AddRandomPowerup();
                     return true;
+                case "Experience":
+                    ItemHandler.AddExperience();
+                    return true;
+                case "Time Trap":
+                    ItemHandler.AddTime();
+                    return true;
                 default:
                     return false;
             }
