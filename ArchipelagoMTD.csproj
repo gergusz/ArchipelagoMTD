@@ -43,6 +43,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>lib/Assembly-CSharp-publicized.dll</HintPath>
     </Reference>
+    <Reference Include="com.flanne.extensions">
+      <HintPath>lib/com.flanne.extensions.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <Target Name="CopyDLL" AfterTargets="Build">
@@ -53,4 +56,15 @@
     <Copy SourceFiles="$(TargetDir)/Newtonsoft.Json.dll" DestinationFolder="$(MTD_PATH)" />
     <Message Text="Copied Newtonsoft.Json.dll to $(MTD_PATH)" Importance="High" />
   </Target>
+
+  <Target Name="CopyPdbAndCreateMdb" AfterTargets="Build" Condition=" '$(Configuration)' == 'Debug' ">
+    <Copy SourceFiles="$(TargetDir)$(ProjectName).pdb" DestinationFolder="$(MTD_PATH)" />
+    <Message Text="Copied $(ProjectName).pdb to $(MTD_PATH)" Importance="High" />
+    <!--https://github.com/bodong1987/pdb2mdb/-->
+    <Exec Command="pdb2mdb.exe $(ProjectName).dll" WorkingDirectory="$(MTD_PATH)"/>
+  </Target>
+  <!--https://gist.github.com/jbevain/ba23149da8369e4a966f?permalink_comment_id=4762490#gistcomment-4762490-->
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugType>Full</DebugType>
+  </PropertyGroup>
 </Project>
